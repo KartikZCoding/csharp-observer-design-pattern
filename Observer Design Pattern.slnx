@@ -1,0 +1,4 @@
+<Solution>
+  <Project Path="BuildingSurveillanceSystemApplication/BuildingSurveillanceSystemApplication.csproj" />
+  <Project Path="StockMarketObserverSystem/StockMarketObserverSystem.csproj" />
+</Solution>
