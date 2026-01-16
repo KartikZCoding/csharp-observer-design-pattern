@@ -12,10 +12,13 @@ namespace StockMarketObserverSystem
         {
             var market = new StockMarket();
             var tradDisplay = new TradeDisplay();
+            var logDisplay = new LogDisplay();
 
             market.Subscribe(tradDisplay.TraderDisplay);
+            market.Subscribe(logDisplay.LoggerDisplay);
 
             market.UpdatePrice("Hello", 2000);
+            market.UpdatePrice("Hello1", 200);
         }
     }
 
@@ -24,6 +27,14 @@ namespace StockMarketObserverSystem
         public void TraderDisplay(StockPrice stock)
         {
             Console.WriteLine($"Trader sees {stock.Name}: {stock.Price}");
+        }
+    }
+
+    public class LogDisplay
+    {
+        public void LoggerDisplay(StockPrice stock)
+        {
+            Console.WriteLine($"Loged! stock {stock.Name}: {stock.Price} at {stock.Time}");
         }
     }
 
