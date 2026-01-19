@@ -10,31 +10,23 @@ namespace BuildingSurveillanceSystemApplication
             Console.Clear();
 
             SecuritySurveillanceHub securitySurveillanceHub = new SecuritySurveillanceHub();
+
             EmployeeNotify employeeNotify = new EmployeeNotify(new Employee
-            {
-                Id = 1,
-                FirstName = "Bob",
-                LastName = "Jones",
-                JobTitle = "Development Manager"
-            });
+            { Id = 1, FirstName = "Bob", LastName = "Jones", JobTitle = "Development Manager" });
             EmployeeNotify employeeNotify2 = new EmployeeNotify(new Employee
-            {
-                Id = 2,
-                FirstName = "Dave",
-                LastName = "Kendal",
-                JobTitle = "Chief Information Officer"
-            });
+            { Id = 2, FirstName = "Dave", LastName = "Kendal", JobTitle = "Chief Information Officer" });
 
             SecurityNotify securityNotify = new SecurityNotify();
 
-            securitySurveillanceHub.Subscribe(employeeNotify);
-            securitySurveillanceHub.Subscribe(employeeNotify2);
-            securitySurveillanceHub.Subscribe(securityNotify);
+            // securitySurveillanceHub.Subscribe(employeeNotify);
+            employeeNotify.Subscribe(securitySurveillanceHub);
+            employeeNotify2.Subscribe(securitySurveillanceHub);
+            securityNotify.Subscribe(securitySurveillanceHub);
 
             securitySurveillanceHub.ConfirmExternalVisitorEnterBuilding(1, "Kartik", "Ahir", "Tridhyatech", "DotNet Developer", DateTime.Parse("15 Jan 2026 10:00"), 1);
             securitySurveillanceHub.ConfirmExternalVisitorEnterBuilding(2, "Aryan", "Nai", "Tridhyatech", "MERN Stack Developer", DateTime.Parse("15 Jan 2026 11:00"), 2);
 
-            // employeeNotify.UnSubscribe();
+            employeeNotify.UnSubscribe();
 
             securitySurveillanceHub.ConfirmExternalVisitorExitBuilding(1, DateTime.Parse("15 Jan 2026 12:00"));
             securitySurveillanceHub.ConfirmExternalVisitorExitBuilding(2, DateTime.Parse("15 Jan 2026 13:00"));
@@ -56,16 +48,17 @@ namespace BuildingSurveillanceSystemApplication
 
         public static void ChangeOutputTheme(TextOutputTheme textOutputTheme)
         {
-            if(textOutputTheme == TextOutputTheme.Employee)
+            if (textOutputTheme == TextOutputTheme.Employee)
             {
                 Console.BackgroundColor = ConsoleColor.DarkMagenta;
                 Console.ForegroundColor = ConsoleColor.White;
             }
-            else if(textOutputTheme == TextOutputTheme.Security)
+            else if (textOutputTheme == TextOutputTheme.Security)
             {
                 Console.BackgroundColor = ConsoleColor.DarkBlue;
                 Console.ForegroundColor = ConsoleColor.Yellow;
-            }else
+            }
+            else
             {
                 Console.ResetColor();
             }
@@ -134,16 +127,17 @@ namespace BuildingSurveillanceSystemApplication
             var externalVisitor = value;
             var externalVisitorListItem = _externalVisitors.FirstOrDefault(e => e.Id == externalVisitor.Id);
 
-            if(externalVisitorListItem == null)
+            if (externalVisitorListItem == null)
             {
                 _externalVisitors.Add(externalVisitor);
                 OutputFormatter.ChangeOutputTheme(OutputFormatter.TextOutputTheme.Security);
                 Console.WriteLine($"Security notification: Visitor Id({externalVisitor.Id}), FirstName({externalVisitor.FirstName}), LastName({externalVisitor.LastName}), entered the building,  DateTime({externalVisitor.EntryDateTime.ToString("dd MM yyyy hh:mm:ss tt")})");
                 OutputFormatter.ChangeOutputTheme(OutputFormatter.TextOutputTheme.Normal);
                 Console.WriteLine();
-            }else
+            }
+            else
             {
-                if(externalVisitorListItem.InBuilding == false)
+                if (externalVisitorListItem.InBuilding == false)
                 {
                     externalVisitorListItem.InBuilding = false;
                     externalVisitorListItem.ExitDateTime = externalVisitor.ExitDateTime;
@@ -155,7 +149,7 @@ namespace BuildingSurveillanceSystemApplication
         }
         public override void OnError(Exception error)
         {
-            
+
         }
         public override void OnCompleted()
         {
@@ -250,11 +244,6 @@ namespace BuildingSurveillanceSystemApplication
             if (!_observers.Contains(observer))
             {
                 _observers.Add(observer);
-            }
-
-            foreach (var externalVisitor in _externalVisitors)
-            {
-                observer.OnNext(externalVisitor);
             }
 
             return new UnSubscriber<ExternalVisitor>(_observers, observer);
