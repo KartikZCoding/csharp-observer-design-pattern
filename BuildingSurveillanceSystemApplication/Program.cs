@@ -45,57 +45,38 @@ namespace BuildingSurveillanceSystemApplication
 
         }
     }
-    public abstract class Observer : IObserver<ExternalVisitor>
+    public static class OutputFormatter
     {
-        IDisposable _cancellation;
-        protected List<ExternalVisitor> _externalVisitors = new List<ExternalVisitor>();
-
-        public abstract void OnCompleted();
-
-        public abstract void OnError(Exception error);
-
-        public abstract void OnNext(ExternalVisitor value);
-
-        public void Subscribe(IObservable<ExternalVisitor> provider)
+        public enum TextOutputTheme
         {
-            _cancellation = provider.Subscribe(this);
+            Security,
+            Employee,
+            Normal
         }
 
-        public void UnSubscribe()
+        public static void ChangeOutputTheme(TextOutputTheme textOutputTheme)
         {
-            _cancellation.Dispose();
-            _externalVisitors.Clear();
+            if(textOutputTheme == TextOutputTheme.Employee)
+            {
+                Console.BackgroundColor = ConsoleColor.DarkMagenta;
+                Console.ForegroundColor = ConsoleColor.White;
+            }
+            else if(textOutputTheme == TextOutputTheme.Security)
+            {
+                Console.BackgroundColor = ConsoleColor.DarkBlue;
+                Console.ForegroundColor = ConsoleColor.Yellow;
+            }else
+            {
+                Console.ResetColor();
+            }
         }
     }
-
     public class EmployeeNotify : Observer
     {
         IEmployee _employee;
         public EmployeeNotify(IEmployee employee)
         {
             _employee = employee;
-        }
-
-        public override void OnCompleted()
-        {
-            string heading = $"{_employee.FirstName} {_employee.LastName} Daily Visitor's Report";
-            Console.WriteLine();
-            Console.WriteLine(heading);
-            Console.WriteLine(new string('-', heading.Length));
-            Console.WriteLine();
-
-            foreach (var externaVisitor in _externalVisitors)
-            {
-                externaVisitor.InBuilding = false;
-                Console.WriteLine($"{externaVisitor.Id,-6}{externaVisitor.FirstName,-15}{externaVisitor.LastName,-15}{externaVisitor.EntryDateTime.ToString("dd MM yyyy hh:mm:ss"),-25}{externaVisitor.ExitDateTime.ToString("dd MM yyyy hh:mm:ss tt"),-25}");
-            }
-            Console.WriteLine();
-            Console.WriteLine();
-        }
-
-        public override void OnError(Exception error)
-        {
-
         }
 
         public override void OnNext(ExternalVisitor value)
@@ -124,13 +105,13 @@ namespace BuildingSurveillanceSystemApplication
                 }
             }
         }
-    }
+        public override void OnError(Exception error)
+        {
 
-    public class SecurityNotify : Observer
-    {
+        }
         public override void OnCompleted()
         {
-            string heading = $"Security Daily Visitor's Report";
+            string heading = $"{_employee.FirstName} {_employee.LastName} Daily Visitor's Report";
             Console.WriteLine();
             Console.WriteLine(heading);
             Console.WriteLine(new string('-', heading.Length));
@@ -145,11 +126,9 @@ namespace BuildingSurveillanceSystemApplication
             Console.WriteLine();
         }
 
-        public override void OnError(Exception error)
-        {
-            
-        }
-
+    }
+    public class SecurityNotify : Observer
+    {
         public override void OnNext(ExternalVisitor value)
         {
             var externalVisitor = value;
@@ -174,9 +153,53 @@ namespace BuildingSurveillanceSystemApplication
                 }
             }
         }
+        public override void OnError(Exception error)
+        {
+            
+        }
+        public override void OnCompleted()
+        {
+            string heading = $"Security Daily Visitor's Report";
+            Console.WriteLine();
+            Console.WriteLine(heading);
+            Console.WriteLine(new string('-', heading.Length));
+            Console.WriteLine();
+
+            foreach (var externaVisitor in _externalVisitors)
+            {
+                externaVisitor.InBuilding = false;
+                Console.WriteLine($"{externaVisitor.Id,-6}{externaVisitor.FirstName,-15}{externaVisitor.LastName,-15}{externaVisitor.EntryDateTime.ToString("dd MM yyyy hh:mm:ss"),-25}{externaVisitor.ExitDateTime.ToString("dd MM yyyy hh:mm:ss tt"),-25}");
+            }
+            Console.WriteLine();
+            Console.WriteLine();
+        }
+
     }
+    public abstract class Observer : IObserver<ExternalVisitor>
+    {
+        IDisposable _cancellation;
+        protected List<ExternalVisitor> _externalVisitors = new List<ExternalVisitor>();
 
+        // react to the notifications
+        public abstract void OnNext(ExternalVisitor value);
 
+        // handle error
+        public abstract void OnError(Exception error);
+
+        // stream ended
+        public abstract void OnCompleted();
+
+        public void Subscribe(IObservable<ExternalVisitor> provider)
+        {
+            _cancellation = provider.Subscribe(this);
+        }
+
+        public void UnSubscribe()
+        {
+            _cancellation.Dispose();
+            _externalVisitors.Clear();
+        }
+    }
     public class Employee : IEmployee
     {
         public int Id { get; set; }
@@ -191,9 +214,6 @@ namespace BuildingSurveillanceSystemApplication
         string LastName { get; set; }
         string JobTitle { get; set; }
     }
-
-
-
     public class UnSubscriber<ExternalVisitor> : IDisposable
     {
         private List<IObserver<ExternalVisitor>> _observers;
@@ -211,10 +231,11 @@ namespace BuildingSurveillanceSystemApplication
             }
         }
     }
-
     public class SecuritySurveillanceHub : IObservable<ExternalVisitor>
     {
         private List<ExternalVisitor> _externalVisitors;
+
+        // list of (_observers)
         private List<IObserver<ExternalVisitor>> _observers;
 
         public SecuritySurveillanceHub()
@@ -223,6 +244,7 @@ namespace BuildingSurveillanceSystemApplication
             _observers = new List<IObserver<ExternalVisitor>>();
         }
 
+        // add observer to list(_observers)
         public IDisposable Subscribe(IObserver<ExternalVisitor> observer)
         {
             if (!_observers.Contains(observer))
@@ -254,6 +276,7 @@ namespace BuildingSurveillanceSystemApplication
 
             _externalVisitors.Add(externalVisitor);
 
+            // notify all (_observers)
             foreach (var observer in _observers)
             {
                 observer.OnNext(externalVisitor);
@@ -269,6 +292,7 @@ namespace BuildingSurveillanceSystemApplication
                 externalVisitor.ExitDateTime = exitDateTime;
                 externalVisitor.InBuilding = false;
 
+                // notify all (_observers)
                 foreach (var observer in _observers)
                 {
                     observer.OnNext(externalVisitor);
@@ -280,6 +304,7 @@ namespace BuildingSurveillanceSystemApplication
         {
             if (_externalVisitors.Where(e => e.InBuilding == true).ToList().Count() == 0)
             {
+                // notify all (_observers)
                 foreach (var observer in _observers)
                 {
                     observer.OnCompleted();
@@ -287,8 +312,6 @@ namespace BuildingSurveillanceSystemApplication
             }
         }
     }
-
-
     public class ExternalVisitor
     {
         public int Id { get; set; }
@@ -302,33 +325,5 @@ namespace BuildingSurveillanceSystemApplication
         public int EmployeeContactId { get; set; }
 
     }
-
-    public static class OutputFormatter
-    {
-        public enum TextOutputTheme
-        {
-            Security,
-            Employee,
-            Normal
-        }
-
-        public static void ChangeOutputTheme(TextOutputTheme textOutputTheme)
-        {
-            if(textOutputTheme == TextOutputTheme.Employee)
-            {
-                Console.BackgroundColor = ConsoleColor.DarkMagenta;
-                Console.ForegroundColor = ConsoleColor.White;
-            }
-            else if(textOutputTheme == TextOutputTheme.Security)
-            {
-                Console.BackgroundColor = ConsoleColor.DarkBlue;
-                Console.ForegroundColor = ConsoleColor.Yellow;
-            }else
-            {
-                Console.ResetColor();
-            }
-        }
-    }
-
 
 }
